@@ -33,7 +33,7 @@ git clone https://github.com/<username-kamu>/<nama-repo>.git
 
 ## 3. Buka di Antigravity
 
-1. Buka **Antigravity**, klik ikon folder, pilih **New Project** → **Add Folder**, lalu arahkan ke folder tadi dan klik **Create**.
+1. Buka **Antigravity**, di sidebar **Projects** klik ikon folder bertanda +, pilih **New Project**, lalu pilih folder tadi dan klik **Open**.
 2. Buka juga `index.html` di **Google Chrome** (klik dua kali file-nya, atau drag ke Chrome).
 3. Kalau muncul banner kuning bertuliskan **"Mode data dummy"**, berarti starter sudah jalan.
 
@@ -41,7 +41,7 @@ git clone https://github.com/<username-kamu>/<nama-repo>.git
 
 ## 4. Aktivitas 2: Sambungkan ke Google Sheets
 
-Ganti `[TEMPEL LINK CSV KAMU]` dengan link CSV dari *File > Share > Publish to web* di Google Sheets, lalu kirim prompt ini ke agent. Waktu memulai percakapan, pilih **Local mode**.
+Ganti `[TEMPEL LINK CSV KAMU]` dengan link CSV dari *File > Share > Publish to web* di Google Sheets, lalu kirim prompt ini ke agent. Pastikan pilihan di bawah kotak chat menunjukkan **Local**.
 
 ```
 Peran: Kamu adalah front-end developer yang teliti.
