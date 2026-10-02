@@ -1,4 +1,4 @@
-# Duit Gajian Ke Mana Aja? · Starter Dashboard
+# Gajian Tracker · Starter Dashboard
 
 Starter project untuk kelas **Build Data Dashboard with Google Antigravity** dari [Generation Girl](https://www.generationgirl.org).
 
@@ -82,7 +82,7 @@ Pilih prompt sesuai level kamu, atau tulis versimu sendiri. Selalu tambahkan kal
 **Pemula**
 ```
 Ganti warna utama dashboard jadi [warna favoritmu] dan ubah judulnya jadi
-"Duit Gajian [nama kamu]". Pastikan teks tetap mudah dibaca.
+"Gajian Tracker [nama kamu]". Pastikan teks tetap mudah dibaca.
 Jangan ubah fungsi loadData().
 ```
 
