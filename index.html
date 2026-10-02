@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Duit Gajian Ke Mana Aja?</title>
+
+  <!-- Font Generation Girl: Averia Serif Libre (judul) + Source Sans 3 (teks) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Averia+Serif+Libre:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Library: Chart.js (grafik) + PapaParse (membaca CSV) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <style>
+    /* ===== Warna & ukuran (design system Generation Girl) ===== */
+    :root {
+      --midnight-blue: #004987;
+      --crystal: #a5e5d9;
+      --link-water: #e9f0fa;
+      --pale-pink: #f2dede;
+      --lemon-chiffon: #fdfbcb;
+      --carmine-pink: #f04945;
+      --white: #ffffff;
+      --ink: #12263a;
+      --ink-muted: #5a6b7a;
+      --border: #d6e2f0;
+      --radius-md: 12px;
+      --radius-lg: 24px;
+      --font-display: "Averia Serif Libre", Georgia, serif;
+      --font-sans: "Source Sans 3", "Source Sans Pro", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--link-water);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .page { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
+
+    /* ===== Header ===== */
+    .eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--ink-muted); margin: 0 0 4px;
+    }
+    h1 {
+      font-family: var(--font-display); font-weight: 700;
+      font-size: clamp(28px, 4vw, 40px); line-height: 1.15;
+      color: var(--midnight-blue); margin: 0 0 4px;
+    }
+    .subtitle { color: var(--ink-muted); margin: 0 0 24px; }
+
+    /* ===== Banner status data ===== */
+    .banner {
+      background: var(--lemon-chiffon); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 24px;
+      color: var(--midnight-blue);
+    }
+    .banner.ok { background: var(--white); }
+    .banner.error { background: var(--pale-pink); }
+
+    /* ===== Kartu KPI ===== */
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 16px 20px;
+    }
+    .kpi-label { font-size: 14px; color: var(--ink-muted); margin: 0; }
+    .kpi-value {
+      font-size: clamp(26px, 3.4vw, 36px); font-weight: 700; line-height: 1.2;
+      color: var(--midnight-blue); margin: 4px 0 2px;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-note { font-size: 13px; color: var(--ink-muted); margin: 0; }
+    .kpi-value.negative { color: var(--carmine-pink); }
+
+    /* ===== Grafik ===== */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .card.wide { grid-column: 1 / -1; }
+    h2 {
+      font-family: var(--font-display); font-weight: 400;
+      font-size: 22px; line-height: 1.3; color: var(--midnight-blue); margin: 0 0 4px;
+    }
+    .chart-note { font-size: 13px; color: var(--ink-muted); margin: 0 0 12px; }
+    .chart-box { position: relative; height: 280px; }
+
+    /* ===== Tabel ===== */
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ===== Insight (diisi di Aktivitas 3, opsional) ===== */
+    .insight { background: var(--crystal); border: none; }
+    .insight p { margin: 0; color: var(--midnight-blue); font-size: 18px; }
+
+    footer { margin-top: 32px; font-size: 13px; color: var(--ink-muted); }
+
+    @media (max-width: 760px) {
+      .kpis, .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">Generation Girl · Build Data Dashboard</p>
+    <h1>Duit Gajian Ke Mana Aja?</h1>
+    <p class="subtitle">Pengeluaran Nadia, September 2026</p>
+
+    <div id="banner" class="banner">Memuat data…</div>
+
+    <!-- KARTU KPI -->
+    <section class="kpis" aria-label="Ringkasan">
+      <div class="card">
+        <p class="kpi-label">Total pengeluaran</p>
+        <p class="kpi-value" id="kpi-total">–</p>
+        <p class="kpi-note" id="kpi-total-note"></p>
+      </div>
+      <div class="card">
+        <p class="kpi-label">Sisa budget</p>
+        <p class="kpi-value" id="kpi-sisa">–</p>
+        <p class="kpi-note" id="kpi-sisa-note"></p>
+      </div>
+      <div class="card">
+        <p class="kpi-label">Kategori paling boros (vs budget)</p>
+        <p class="kpi-value" id="kpi-boros">–</p>
+        <p class="kpi-note" id="kpi-boros-note"></p>
+      </div>
+    </section>
+
+    <!-- GRAFIK -->
+    <section class="grid">
+      <div class="card wide">
+        <h2>Pengeluaran kumulatif vs budget</h2>
+        <p class="chart-note">Total pengeluaran dari tanggal 1 sampai hari itu. Garis putus-putus = budget bulanan.</p>
+        <div class="chart-box"><canvas id="chart-kumulatif" aria-label="Grafik pengeluaran kumulatif"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Per kategori</h2>
+        <p class="chart-note">Diurutkan dari yang terbesar</p>
+        <div class="chart-box"><canvas id="chart-kategori" aria-label="Grafik pengeluaran per kategori"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Per metode bayar</h2>
+        <p class="chart-note">Paling sering bayar pakai apa?</p>
+        <div class="chart-box"><canvas id="chart-metode" aria-label="Grafik pengeluaran per metode bayar"></canvas></div>
+      </div>
+    </section>
+
+    <!-- TABEL 5 TRANSAKSI TERBESAR -->
+    <section class="card">
+      <h2>5 transaksi terbesar</h2>
+      <table>
+        <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th class="num">Nominal</th></tr></thead>
+        <tbody id="top5"></tbody>
+      </table>
+    </section>
+
+    <!-- INSIGHT (opsional, Aktivitas 3) -->
+    <section class="card insight" style="margin-top:16px">
+      <p id="insight">Insight kamu tulis di sini, misalnya: "Jajan & Kopi sudah 164% dari budget."</p>
+    </section>
+
+    <footer>Data fiktif untuk latihan. Dibuat di kelas Build Data Dashboard with Google Antigravity · Generation Girl</footer>
+  </main>
+
+  <script>
+  // =====================================================================
+  // BAGIAN 1 — PENGATURAN
+  // =====================================================================
+
+  // Tempel link CSV hasil "Publish to web" dari Google Sheets kamu di sini.
+  // Selama masih kosong, dashboard memakai DUMMY_DATA di bawah.
+  const CSV_URL = "";
+
+  // Budget per kategori (disalin dari tab "Budget" di Sheet).
+  const BUDGET = {
+    "Makan": 900000,
+    "Jajan & Kopi": 300000,
+    "Transportasi": 350000,
+    "Belanja": 700000,
+    "Tagihan": 1800000,
+    "Self-care": 400000,
+    "Hiburan": 350000,
+    "Lainnya": 350000
+  };
+
+  // Data contoh, supaya dashboard sudah kelihatan sebelum disambungkan ke Sheet.
+  // Formatnya sama persis dengan kolom di Sheet.
+  const DUMMY_DATA = [
+    { Tanggal: "2026-09-01", Keterangan: "Bayar kos", Kategori: "Tagihan", Nominal: 1500000, "Metode Bayar": "Transfer" },
+    { Tanggal: "2026-09-02", Keterangan: "Kopi susu", Kategori: "Jajan & Kopi", Nominal: 25000, "Metode Bayar": "QRIS" },
+    { Tanggal: "2026-09-03", Keterangan: "Nasi padang", Kategori: "Makan", Nominal: 28000, "Metode Bayar": "QRIS" },
+    { Tanggal: "2026-09-05", Keterangan: "Ojol ke kantor", Kategori: "Transportasi", Nominal: 20000, "Metode Bayar": "E-wallet" },
+    { Tanggal: "2026-09-07", Keterangan: "Belanja bulanan", Kategori: "Belanja", Nominal: 200000, "Metode Bayar": "Kartu Debit" },
+    { Tanggal: "2026-09-10", Keterangan: "Potong rambut", Kategori: "Self-care", Nominal: 60000, "Metode Bayar": "Cash" },
+    { Tanggal: "2026-09-12", Keterangan: "Nonton bioskop", Kategori: "Hiburan", Nominal: 50000, "Metode Bayar": "QRIS" },
+    { Tanggal: "2026-09-15", Keterangan: "Boba", Kategori: "Jajan & Kopi", Nominal: 30000, "Metode Bayar": "E-wallet" },
+    { Tanggal: "2026-09-18", Keterangan: "Kado teman", Kategori: "Lainnya", Nominal: 150000, "Metode Bayar": "E-wallet" },
+    { Tanggal: "2026-09-21", Keterangan: "Soto ayam", Kategori: "Makan", Nominal: 20000, "Metode Bayar": "Cash" },
+    { Tanggal: "2026-09-25", Keterangan: "Martabak manis", Kategori: "Jajan & Kopi", Nominal: 40000, "Metode Bayar": "QRIS" },
+    { Tanggal: "2026-09-28", Keterangan: "Belanja online", Kategori: "Belanja", Nominal: 150000, "Metode Bayar": "E-wallet" }
+  ];
+
+
+  // =====================================================================
+  // BAGIAN 2 — MEMBACA DATA
+  // =====================================================================
+
+  // TODO (Aktivitas 2): kalau CSV_URL sudah diisi, ambil data dari CSV_URL
+  // pakai PapaParse (sudah dimuat di <head>), lalu rapikan setiap baris
+  // pakai normalizeRow(). Kalau CSV_URL kosong, tetap pakai DUMMY_DATA.
+  async function loadData() {
+    return { rows: DUMMY_DATA.map(normalizeRow).filter(isValidRow), source: "dummy" };
+  }
+
+  // Mengubah satu baris mentah jadi format yang dipakai dashboard.
+  function normalizeRow(raw) {
+    return {
+      tanggal: parseTanggal(raw["Tanggal"]),
+      keterangan: String(raw["Keterangan"] ?? "").trim(),
+      kategori: String(raw["Kategori"] ?? "").trim(),
+      nominal: parseNominal(raw["Nominal"]),
+      metode: String(raw["Metode Bayar"] ?? "").trim()
+    };
+  }
+
+  // Baris dianggap valid kalau punya tanggal, kategori, dan nominal > 0.
+  // (Baris kosong atau baris "TOTAL MINGGU" otomatis tidak lolos.)
+  function isValidRow(r) {
+    return r.tanggal instanceof Date && !isNaN(r.tanggal) && r.kategori !== "" && r.nominal > 0;
+  }
+
+  // Membaca tanggal dalam 3 format: 01/09/2026 · 1 Sep 2026 · 2026-09-01
+  function parseTanggal(value) {
+    if (value instanceof Date) return value;
+    const s = String(value ?? "").trim();
+    let m;
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return new Date(+m[1], +m[2] - 1, +m[3]);
+    if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return new Date(+m[3], +m[2] - 1, +m[1]);
+    const BULAN = { jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, may: 4, jun: 5, jul: 6, agu: 7, agt: 7, aug: 7, sep: 8, okt: 9, oct: 9, nov: 10, des: 11, dec: 11 };
+    if ((m = s.match(/^(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\s+(\d{4})$/))) {
+      const bulan = BULAN[m[2].toLowerCase()];
+      if (bulan !== undefined) return new Date(+m[3], bulan, +m[1]);
+    }
+    return null;
+  }
+
+  // Membaca nominal: 25000 · "25.000" · "Rp 25.000" · "25rb"
+  function parseNominal(value) {
+    if (typeof value === "number") return value;
+    let s = String(value ?? "").toLowerCase().replace(/rp/g, "").replace(/\s/g, "");
+    if (s.endsWith("rb")) return Number(s.slice(0, -2).replace(",", ".")) * 1000;
+    s = s.replace(/\./g, "").replace(",", ".");
+    const n = Number(s);
+    return isNaN(n) ? 0 : n;
+  }
+
+
+  // =====================================================================
+  // BAGIAN 3 — MENGHITUNG & MENAMPILKAN
+  // =====================================================================
+
+  const rupiah = (n) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  const rupiahSingkat = (n) => n >= 1e6 ? (n / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jt" : Math.round(n / 1e3) + " rb";
+  const tanggalPendek = (d) => d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+
+  const WARNA = {
+    utama: "#004987",       // midnight-blue: semua batang & garis data
+    budget: "#5a6b7a",      // ink-muted: garis budget
+    grid: "#d6e2f0",        // border
+    teks: "#5a6b7a"
+  };
+
+  Chart.defaults.font.family = '"Source Sans 3", "Source Sans Pro", system-ui, sans-serif';
+  Chart.defaults.font.size = 13;
+  Chart.defaults.color = WARNA.teks;
+
+  const charts = {};
+
+  function sumBy(rows, key) {
+    const out = {};
+    rows.forEach(r => { out[r[key]] = (out[r[key]] || 0) + r.nominal; });
+    return out;
+  }
+
+  function renderKPI(rows) {
+    const total = rows.reduce((a, r) => a + r.nominal, 0);
+    const totalBudget = Object.values(BUDGET).reduce((a, b) => a + b, 0);
+    const sisa = totalBudget - total;
+
+    document.getElementById("kpi-total").textContent = rupiah(total);
+    document.getElementById("kpi-total-note").textContent = `${rows.length} transaksi`;
+
+    const elSisa = document.getElementById("kpi-sisa");
+    elSisa.textContent = rupiah(sisa);
+    elSisa.classList.toggle("negative", sisa < 0);
+    document.getElementById("kpi-sisa-note").textContent =
+      sisa < 0 ? `Budget ${rupiah(totalBudget)} sudah terlewati` : `dari budget ${rupiah(totalBudget)}`;
+
+    const perKat = sumBy(rows, "kategori");
+    let boros = null, rasio = -1;
+    Object.keys(perKat).forEach(k => {
+      if (BUDGET[k] && perKat[k] / BUDGET[k] > rasio) { rasio = perKat[k] / BUDGET[k]; boros = k; }
+    });
+    document.getElementById("kpi-boros").textContent = boros ?? "–";
+    document.getElementById("kpi-boros-note").textContent =
+      boros ? `${Math.round(rasio * 100)}% dari budget (${rupiah(perKat[boros])} / ${rupiah(BUDGET[boros])})` : "";
+  }
+
+  function renderKumulatif(rows) {
+    const urut = [...rows].sort((a, b) => a.tanggal - b.tanggal);
+    const perHari = new Map();
+    urut.forEach(r => {
+      const key = r.tanggal.getTime();   // tanggal sudah jam 00:00 waktu lokal
+      perHari.set(key, (perHari.get(key) || 0) + r.nominal);
+    });
+    let jalan = 0;
+    const labels = [], values = [];
+    [...perHari.keys()].sort((a, b) => a - b).forEach(k => {
+      jalan += perHari.get(k);
+      labels.push(tanggalPendek(new Date(k)));
+      values.push(jalan);
+    });
+    const totalBudget = Object.values(BUDGET).reduce((a, b) => a + b, 0);
+
+    charts.kumulatif?.destroy();
+    charts.kumulatif = new Chart(document.getElementById("chart-kumulatif"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label: "Pengeluaran kumulatif", data: values, borderColor: WARNA.utama, backgroundColor: "rgba(0,73,135,0.10)",
+            fill: true, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2 },
+          { label: "Budget bulanan", data: labels.map(() => totalBudget), borderColor: WARNA.budget,
+            borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 0, fill: false }
+        ]
+      },
+      options: {
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "bottom", labels: { boxWidth: 16, boxHeight: 2 } },
+          tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${rupiah(c.parsed.y)}` } }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+          y: { beginAtZero: true, grid: { color: WARNA.grid }, border: { display: false },
+               ticks: { callback: (v) => rupiahSingkat(v) } }
+        }
+      }
+    });
+  }
+
+  function renderBar(canvasId, data) {
+    const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+    charts[canvasId]?.destroy();
+    charts[canvasId] = new Chart(document.getElementById(canvasId), {
+      type: "bar",
+      data: {
+        labels: entries.map(e => e[0]),
+        datasets: [{ data: entries.map(e => e[1]), backgroundColor: WARNA.utama,
+                     borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start",
+                     maxBarThickness: 24 }]
+      },
+      options: {
+        indexAxis: "y",
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c) => rupiah(c.parsed.x) } }
+        },
+        scales: {
+          x: { beginAtZero: true, grid: { color: WARNA.grid }, border: { display: false },
+               ticks: { callback: (v) => rupiahSingkat(v), maxRotation: 0, maxTicksLimit: 5 } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function renderTop5(rows) {
+    const top = [...rows].sort((a, b) => b.nominal - a.nominal).slice(0, 5);
+    document.getElementById("top5").innerHTML = top.map(r => `
+      <tr>
+        <td>${tanggalPendek(r.tanggal)}</td>
+        <td>${escapeHtml(r.keterangan)}</td>
+        <td>${escapeHtml(r.kategori)}</td>
+        <td class="num">${rupiah(r.nominal)}</td>
+      </tr>`).join("");
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function setBanner(source, count) {
+    const el = document.getElementById("banner");
+    if (source === "dummy") {
+      el.className = "banner";
+      el.innerHTML = "<strong>Mode data dummy.</strong> Isi <code>CSV_URL</code> dengan link CSV dari Google Sheets kamu supaya dashboard memakai data asli.";
+    } else {
+      el.className = "banner ok";
+      el.innerHTML = `<strong>Terhubung ke Google Sheets.</strong> ${count} transaksi dimuat. Cek: total di bawah harus sama dengan <code>=SUM()</code> kolom Nominal di Sheet.`;
+    }
+  }
+
+  async function main() {
+    try {
+      const { rows, source } = await loadData();
+      setBanner(source, rows.length);
+      renderKPI(rows);
+      renderKumulatif(rows);
+      renderBar("chart-kategori", sumBy(rows, "kategori"));
+      renderBar("chart-metode", sumBy(rows, "metode"));
+      renderTop5(rows);
+    } catch (err) {
+      const el = document.getElementById("banner");
+      el.className = "banner error";
+      el.innerHTML = `<strong>Data gagal dimuat.</strong> ${escapeHtml(String(err.message || err))}. Cek lagi link <code>CSV_URL</code> dan pastikan Sheet sudah di-publish sebagai CSV.`;
+      console.error(err);
+    }
+  }
+
+  main();
+  </script>
+</body>
+</html>
