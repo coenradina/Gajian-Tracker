@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Averia+Serif+Libre:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Library: Chart.js (grafik) + PapaParse (membaca CSV) -->
+  <!-- Library: Chart.js (grafik) + SheetJS (membaca file Excel/CSV) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
     /* ===== Warna & ukuran (design system Generation Girl) ===== */
@@ -65,6 +65,19 @@
     .banner.ok { background: var(--white); }
     .banner.error { background: var(--pale-pink); }
 
+    /* ===== Tombol sumber data ===== */
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: -8px 0 24px; }
+    .btn {
+      font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+      border-radius: 999px; padding: 10px 18px; cursor: pointer;
+      border: 2px solid var(--midnight-blue);
+    }
+    .btn-primary { background: var(--midnight-blue); color: var(--white); }
+    .btn-secondary { background: var(--white); color: var(--midnight-blue); }
+    .btn-secondary.live { background: var(--crystal); border-color: var(--crystal); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .toolbar-note { font-size: 13px; color: var(--ink-muted); }
+
     /* ===== Kartu KPI ===== */
     .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
     .card {
@@ -114,6 +127,14 @@
     <p class="subtitle">Pengeluaran Nadia, September 2026</p>
 
     <div id="banner" class="banner">Memuat data…</div>
+
+    <!-- SUMBER DATA: upload file, atau pantau file secara realtime -->
+    <div class="toolbar">
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" hidden>
+      <button class="btn btn-primary" id="btn-upload" type="button">Upload file Excel</button>
+      <button class="btn btn-secondary" id="btn-realtime" type="button">Update realtime</button>
+      <span class="toolbar-note" id="toolbar-note"></span>
+    </div>
 
     <!-- KARTU KPI -->
     <section class="kpis" aria-label="Ringkasan">
@@ -175,9 +196,9 @@
   // BAGIAN 1 — PENGATURAN
   // =====================================================================
 
-  // Tempel link CSV hasil "Publish to web" dari Google Sheets kamu di sini.
-  // Selama masih kosong, dashboard memakai DUMMY_DATA di bawah.
-  const CSV_URL = "";
+  // Sumber data: file Excel (.xlsx) hasil File > Download dari Google Sheets.
+  // Selama belum ada file yang dipilih, dashboard memakai DUMMY_DATA di bawah.
+  const NAMA_SHEET = "Transaksi";   // nama tab yang dibaca di file Excel
 
   // Budget per kategori (disalin dari tab "Budget" di Sheet).
   const BUDGET = {
@@ -213,11 +234,80 @@
   // BAGIAN 2 — MEMBACA DATA
   // =====================================================================
 
-  // TODO (Aktivitas 2): kalau CSV_URL sudah diisi, ambil data dari CSV_URL
-  // pakai PapaParse (sudah dimuat di <head>), lalu rapikan setiap baris
-  // pakai normalizeRow(). Kalau CSV_URL kosong, tetap pakai DUMMY_DATA.
-  async function loadData() {
-    return { rows: DUMMY_DATA.map(normalizeRow).filter(isValidRow), source: "dummy" };
+  // TODO (Aktivitas 2): kalau ada `file` (dari tombol Upload atau Update realtime),
+  // baca isinya pakai SheetJS (sudah dimuat di <head>), ambil tab NAMA_SHEET,
+  // lalu rapikan setiap baris pakai normalizeRow() dan saring pakai isValidRow().
+  // Kalau `file` kosong, tetap pakai DUMMY_DATA.
+  const CACHE_KEY_DATA = "gajian_cached_data";
+  const CACHE_KEY_REALTIME = "gajian_realtime_active";
+
+  // Membaca data: mendukung file .xlsx, .xls, dan .csv
+  // Jika file kosong (misal saat refresh), otomatis memulihkan data dari cache localStorage
+  async function loadData(file) {
+    if (!file) {
+      try {
+        const cachedRaw = localStorage.getItem(CACHE_KEY_DATA);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          if (Array.isArray(cached.rows) && cached.rows.length > 0) {
+            const restoredRows = cached.rows.map(r => ({
+              ...r,
+              tanggal: new Date(r.tanggal)
+            })).filter(isValidRow);
+            if (restoredRows.length > 0) {
+              return {
+                rows: restoredRows,
+                source: "file",
+                fileName: cached.fileName || "file tersimpan",
+                fromCache: true
+              };
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Gagal memulihkan cache data:", e);
+      }
+
+      return { rows: DUMMY_DATA.map(normalizeRow).filter(isValidRow), source: "dummy" };
+    }
+
+    try {
+      const buffer = await file.arrayBuffer();
+      // SheetJS otomatis mendukung format .xlsx, .xls, dan .csv
+      const workbook = XLSX.read(buffer, { type: "array", raw: true });
+
+      if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+        throw new Error("File spreadsheet tidak memiliki lembar kerja (sheet).");
+      }
+
+      const sheetName = workbook.SheetNames.includes(NAMA_SHEET)
+        ? NAMA_SHEET
+        : workbook.SheetNames[0];
+
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) {
+        throw new Error(`Lembar kerja "${sheetName}" tidak dapat dibaca atau kosong.`);
+      }
+
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      const rows = rawRows.map(normalizeRow).filter(isValidRow);
+
+      // Simpan data ke localStorage agar persisten saat halaman direfresh
+      try {
+        localStorage.setItem(CACHE_KEY_DATA, JSON.stringify({
+          rows,
+          fileName: file.name,
+          source: "file",
+          updatedAt: Date.now()
+        }));
+      } catch (e) {
+        console.warn("Gagal menyimpan data ke cache:", e);
+      }
+
+      return { rows, source: "file", fileName: file.name };
+    } catch (err) {
+      throw new Error(`Gagal membaca file spreadsheet (.xlsx / .xls): ${err.message || err}`);
+    }
   }
 
   // Mengubah satu baris mentah jadi format yang dipakai dashboard.
@@ -237,9 +327,14 @@
     return r.tanggal instanceof Date && !isNaN(r.tanggal) && r.kategori !== "" && r.nominal > 0;
   }
 
-  // Membaca tanggal dalam 3 format: 01/09/2026 · 1 Sep 2026 · 2026-09-01
+  // Membaca tanggal: angka tanggal Excel · 01/09/2026 · 1 Sep 2026 · 2026-09-01
   function parseTanggal(value) {
-    if (value instanceof Date) return value;
+    if (value instanceof Date) return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    if (typeof value === "number" && value > 20000 && value < 80000) {
+      // Excel menyimpan tanggal sebagai jumlah hari sejak 30 Des 1899
+      const d = new Date(Math.round((value - 25569) * 86400000));
+      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    }
     const s = String(value ?? "").trim();
     let m;
     if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return new Date(+m[1], +m[2] - 1, +m[3]);
@@ -400,35 +495,273 @@
     return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  function setBanner(source, count) {
+  function setBanner(info, count, file) {
     const el = document.getElementById("banner");
-    if (source === "dummy") {
+    const namaFile = file ? file.name : (info.fileName || "file");
+    if (info.source === "dummy" && file) {
+      el.className = "banner error";
+      el.innerHTML = `<strong>File sudah dipilih, tapi belum terbaca.</strong> Fungsi <code>loadData()</code> belum bisa membaca file Excel. Ini tugas agent di Aktivitas 2.`;
+    } else if (info.source === "dummy") {
       el.className = "banner";
-      el.innerHTML = "<strong>Mode data dummy.</strong> Isi <code>CSV_URL</code> dengan link CSV dari Google Sheets kamu supaya dashboard memakai data asli.";
+      el.innerHTML = "<strong>Mode data dummy.</strong> Klik <b>Upload file Excel</b> dan pilih file .xlsx atau .xls hasil download dari Google Sheets.";
     } else {
       el.className = "banner ok";
-      el.innerHTML = `<strong>Terhubung ke Google Sheets.</strong> ${count} transaksi dimuat. Cek: total di bawah harus sama dengan <code>=SUM()</code> kolom Nominal di Sheet.`;
+      const ketTersimpan = info.fromCache ? " (tersimpan otomatis)" : "";
+      el.innerHTML = `<strong>Terbaca dari file Excel.</strong> ${count} transaksi dari <code>${escapeHtml(namaFile)}</code>${ketTersimpan}. Cek: total di bawah harus sama dengan <code>=SUM()</code> kolom Nominal di Sheet.`;
     }
   }
 
-  async function main() {
+  function renderInsight(rows) {
+    const el = document.getElementById("insight");
+    if (!el) return;
+    if (!rows || rows.length === 0) {
+      el.textContent = "Belum ada data transaksi untuk menghasilkan insight.";
+      return;
+    }
+
+    const total = rows.reduce((a, r) => a + r.nominal, 0);
+    const totalBudget = Object.values(BUDGET).reduce((a, b) => a + b, 0);
+    const sisa = totalBudget - total;
+    const perKat = sumBy(rows, "kategori");
+
+    let boros = null, rasio = -1;
+    Object.keys(perKat).forEach(k => {
+      if (BUDGET[k] && perKat[k] / BUDGET[k] > rasio) {
+        rasio = perKat[k] / BUDGET[k];
+        boros = k;
+      }
+    });
+
+    const perMetode = sumBy(rows, "metode");
+    const entriesMetode = Object.entries(perMetode).filter(e => e[0]).sort((a, b) => b[1] - a[1]);
+    const topMetode = entriesMetode.length > 0 ? entriesMetode[0] : null;
+
+    let pesan = "";
+    if (boros && rasio > 1) {
+      pesan = `⚠️ <strong>Insight:</strong> Kategori <strong>${escapeHtml(boros)}</strong> sudah melampaui budget hingga <strong>${Math.round(rasio * 100)}%</strong> (${rupiah(perKat[boros])} / ${rupiah(BUDGET[boros])}). `;
+    } else if (boros) {
+      pesan = `💡 <strong>Insight:</strong> Semua kategori masih dalam batas budget. Pengeluaran tertinggi ada di <strong>${escapeHtml(boros)}</strong> (${Math.round(rasio * 100)}% dari budget). `;
+    } else {
+      pesan = `💡 <strong>Insight:</strong> Total pengeluaran tercatat <strong>${rupiah(total)}</strong>. `;
+    }
+
+    if (sisa < 0) {
+      pesan += `Pengeluaran telah melebihi total budget sebesar <strong>${rupiah(Math.abs(sisa))}</strong>.`;
+    } else {
+      pesan += `Sisa budget bulanan saat ini <strong>${rupiah(sisa)}</strong>.`;
+    }
+
+    if (topMetode) {
+      pesan += ` Metode pembayaran paling sering digunakan: <strong>${escapeHtml(topMetode[0])}</strong> (${rupiah(topMetode[1])}).`;
+    }
+
+    el.innerHTML = pesan;
+  }
+
+  async function main(file) {
     try {
-      const { rows, source } = await loadData();
-      setBanner(source, rows.length);
+      const info = await loadData(file);
+      const rows = info.rows;
+      setBanner(info, rows.length, file);
       renderKPI(rows);
       renderKumulatif(rows);
       renderBar("chart-kategori", sumBy(rows, "kategori"));
       renderBar("chart-metode", sumBy(rows, "metode"));
       renderTop5(rows);
+      renderInsight(rows);
     } catch (err) {
       const el = document.getElementById("banner");
       el.className = "banner error";
-      el.innerHTML = `<strong>Data gagal dimuat.</strong> ${escapeHtml(String(err.message || err))}. Cek lagi link <code>CSV_URL</code> dan pastikan Sheet sudah di-publish sebagai CSV.`;
+      el.innerHTML = `<strong>Data gagal dimuat.</strong> ${escapeHtml(String(err.message || err))}`;
       console.error(err);
     }
   }
 
-  main();
+
+  // =====================================================================
+  // BAGIAN 4 — TOMBOL UPLOAD & UPDATE REALTIME (dengan persistensi IndexedDB)
+  // =====================================================================
+
+  // Helper IndexedDB untuk menyimpan FileSystemFileHandle secara persisten
+  function openHandleDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("GajianTrackerDB", 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains("handles")) {
+          req.result.createObjectStore("handles");
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function simpanHandle(handle) {
+    try {
+      const db = await openHandleDB();
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").put(handle, "realtimeHandle");
+      localStorage.setItem(CACHE_KEY_REALTIME, "true");
+    } catch (e) {
+      console.warn("Gagal menyimpan file handle ke IndexedDB:", e);
+    }
+  }
+
+  async function ambilHandle() {
+    try {
+      const db = await openHandleDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction("handles", "readonly");
+        const req = tx.objectStore("handles").get("realtimeHandle");
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function hapusHandle() {
+    try {
+      localStorage.removeItem(CACHE_KEY_REALTIME);
+      const db = await openHandleDB();
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").delete("realtimeHandle");
+    } catch (e) {}
+  }
+
+  const fileInput = document.getElementById("file-input");
+  const btnUpload = document.getElementById("btn-upload");
+  const btnRealtime = document.getElementById("btn-realtime");
+  const note = document.getElementById("toolbar-note");
+  const jam = () => new Date().toLocaleTimeString("id-ID");
+
+  // Upload: pilih file sekali. Kalau file-nya diubah, upload lagi.
+  btnUpload.addEventListener("click", async () => {
+    stopRealtime();
+    await hapusHandle();
+    fileHandle = null;
+    fileInput.click();
+  });
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    await main(file);
+    note.textContent = `Dibaca pukul ${jam()}. Ubah file-nya? Upload lagi.`;
+    fileInput.value = "";
+  });
+
+  // Update realtime: dashboard memantau file setiap 2 detik dan membaca ulang
+  // setiap kali file disimpan. Hanya jalan di Chrome, Edge, dan Arc.
+  const bisaRealtime = "showOpenFilePicker" in window;
+  let fileHandle = null, timer = null, terakhirDiubah = 0;
+
+  if (!bisaRealtime) {
+    btnRealtime.disabled = true;
+    btnRealtime.title = "Hanya bisa di Chrome, Edge, atau Arc";
+    note.textContent = "Update realtime hanya bisa di Chrome, Edge, atau Arc. Pakai Upload file Excel.";
+  }
+
+  btnRealtime.addEventListener("click", async () => {
+    if (timer) {
+      stopRealtime();
+      await hapusHandle();
+      fileHandle = null;
+      return;
+    }
+
+    try {
+      // Jika fileHandle sudah ada dari sesi sebelumnya (misal setelah refresh), minta izin akses
+      if (fileHandle) {
+        let perm = await fileHandle.queryPermission({ mode: "read" });
+        if (perm !== "granted") {
+          perm = await fileHandle.requestPermission({ mode: "read" });
+        }
+        if (perm === "granted") {
+          await mulaiRealtime(fileHandle);
+          return;
+        }
+      }
+
+      const [handle] = await window.showOpenFilePicker({
+        multiple: false,
+        types: [{ description: "File Excel atau CSV", accept: {
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+          "application/vnd.ms-excel": [".xls"],
+          "text/csv": [".csv"]
+        } }]
+      });
+      await mulaiRealtime(handle);
+    } catch (err) {
+      if (err.name !== "AbortError") console.error(err);
+    }
+  });
+
+  async function mulaiRealtime(handle) {
+    fileHandle = handle;
+    await simpanHandle(handle);
+    terakhirDiubah = 0;
+    await cekFile();
+    if (timer) clearInterval(timer);
+    timer = setInterval(cekFile, 2000);
+    btnRealtime.textContent = "Stop realtime";
+    btnRealtime.classList.add("live");
+  }
+
+  async function cekFile() {
+    try {
+      const file = await fileHandle.getFile();
+      if (file.lastModified !== terakhirDiubah) {
+        terakhirDiubah = file.lastModified;
+        await main(file);
+      }
+      note.textContent = `Realtime aktif: ${file.name}. Simpan file-nya, dashboard ikut berubah. (Dicek ${jam()})`;
+    } catch (err) {
+      // Saat file sedang disimpan, file bisa "hilang" sebentar. Coba lagi 2 detik kemudian.
+      note.textContent = "Menunggu file selesai disimpan…";
+    }
+  }
+
+  function stopRealtime() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    btnRealtime.textContent = "Update realtime";
+    btnRealtime.classList.remove("live");
+    note.textContent = "Realtime berhenti.";
+  }
+
+  // Pulihkan status realtime secara otomatis saat halaman direfresh
+  async function inisialisasiRealtime() {
+    if (!bisaRealtime) return;
+    const isRealtimeActive = localStorage.getItem(CACHE_KEY_REALTIME) === "true";
+    if (!isRealtimeActive) return;
+
+    const savedHandle = await ambilHandle();
+    if (!savedHandle) return;
+
+    fileHandle = savedHandle;
+    try {
+      const perm = await savedHandle.queryPermission({ mode: "read" });
+      if (perm === "granted") {
+        await mulaiRealtime(savedHandle);
+      } else {
+        btnRealtime.textContent = "Lanjutkan realtime";
+        btnRealtime.classList.add("live");
+        note.textContent = `Realtime sebelumnya aktif untuk ${savedHandle.name}. Klik "Lanjutkan realtime" untuk menyambungkan kembali.`;
+      }
+    } catch (e) {
+      console.warn("Gagal mengecek permission realtime:", e);
+    }
+  }
+
+  async function init() {
+    await main();
+    await inisialisasiRealtime();
+  }
+
+  init();
   </script>
 </body>
 </html>

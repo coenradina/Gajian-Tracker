@@ -1,0 +1,76 @@
+Tanggal,Keterangan,Kategori,Nominal,Metode Bayar
+2026-09-01,Bayar kos bulan September,Tagihan,1500000,Transfer
+2026-09-01,Gado-gado,Makan,35000,E-wallet
+2026-09-01,Membership gym bulanan,Self-care,150000,Transfer
+2026-09-02,Es teh jumbo,Jajan & Kopi,45000,E-wallet
+2026-09-02,Ojol ke kantor,Transportasi,18000,E-wallet
+2026-09-02,Pecel lele,Makan,35000,QRIS
+2026-09-02,Token listrik kos,Tagihan,150000,E-wallet
+2026-09-03,Ayam geprek,Makan,12000,Cash
+2026-09-03,Cilok & seblak,Jajan & Kopi,45000,Cash
+2026-09-03,Paket data bulanan,Tagihan,105000,E-wallet
+2026-09-04,Lunpia & es teh,Makan,15000,Cash
+2026-09-04,Ojol pulang kantor,Transportasi,22000,E-wallet
+2026-09-04,Sunscreen & toner,Self-care,128000,E-wallet
+2026-09-05,Langganan musik,Hiburan,55000,Kartu Debit
+2026-09-05,Langganan streaming film,Hiburan,65000,Kartu Debit
+2026-09-06,Belanja bulanan di minimarket,Belanja,215000,Kartu Debit
+2026-09-06,Martabak manis,Jajan & Kopi,32000,E-wallet
+2026-09-06,Nasi rames dekat kantor,Makan,28000,E-wallet
+2026-09-07,Bakso,Makan,22000,E-wallet
+2026-09-07,Tiket kereta ke rumah orang tua,Transportasi,120000,Transfer
+2026-09-08,Kopi susu gula aren,Jajan & Kopi,25000,QRIS
+2026-09-08,Mie ayam,Makan,20000,QRIS
+2026-09-08,Ojol ke stasiun,Transportasi,16000,E-wallet
+2026-09-09,Cilok & seblak,Jajan & Kopi,18000,Cash
+2026-09-09,Nasi kucing angkringan,Makan,25000,Cash
+2026-09-09,Ojol ke stasiun,Transportasi,24000,E-wallet
+2026-09-10,Nasi goreng malam,Makan,22000,QRIS
+2026-09-10,Potong rambut,Self-care,60000,Cash
+2026-09-11,Martabak manis,Jajan & Kopi,28000,E-wallet
+2026-09-11,Ojol ke stasiun,Transportasi,15000,E-wallet
+2026-09-11,Pecel lele,Makan,20000,QRIS
+2026-09-12,Belanja online: kemeja kerja,Belanja,149000,E-wallet
+2026-09-13,Cilok & seblak,Jajan & Kopi,38000,Cash
+2026-09-13,Lunpia & es teh,Makan,35000,Cash
+2026-09-13,Nonton bioskop,Hiburan,50000,QRIS
+2026-09-14,Kado ulang tahun sahabat,Lainnya,175000,E-wallet
+2026-09-14,Mie ayam,Makan,22000,E-wallet
+2026-09-15,Kopi susu gula aren,Jajan & Kopi,32000,E-wallet
+2026-09-15,Nasi goreng malam,Makan,25000,E-wallet
+2026-09-15,Ojol ke kantor,Transportasi,32000,E-wallet
+2026-09-16,Cilok & seblak,Jajan & Kopi,28000,QRIS
+2026-09-16,Gado-gado,Makan,35000,E-wallet
+2026-09-16,Iuran sampah & keamanan,Tagihan,25000,Cash
+2026-09-17,Nasi padang,Makan,15000,E-wallet
+2026-09-17,Ojol ke kantor,Transportasi,19000,E-wallet
+2026-09-18,Gado-gado,Makan,25000,QRIS
+2026-09-18,Roti bakar,Jajan & Kopi,38000,Cash
+2026-09-19,Belanja online: tas,Belanja,189000,E-wallet
+2026-09-19,Makan malam keluarga,Makan,185000,Kartu Debit
+2026-09-20,Ayam geprek,Makan,25000,E-wallet
+2026-09-20,Es teh jumbo,Jajan & Kopi,18000,Cash
+2026-09-20,Karaoke bareng teman kantor,Hiburan,95000,QRIS
+2026-09-20,Ojol ke stasiun,Transportasi,27000,E-wallet
+2026-09-21,Belanja bulanan di minimarket,Belanja,132500,Kartu Debit
+2026-09-22,Arisan bulanan,Lainnya,200000,Transfer
+2026-09-22,Gado-gado,Makan,30000,Cash
+2026-09-22,Roti bakar,Jajan & Kopi,15000,Cash
+2026-09-23,Bakso,Makan,35000,QRIS
+2026-09-23,Es kopi susu,Jajan & Kopi,28000,QRIS
+2026-09-23,Ojol ke stasiun,Transportasi,21000,E-wallet
+2026-09-24,Masker wajah,Self-care,35000,QRIS
+2026-09-24,Nasi kucing angkringan,Makan,12000,Cash
+2026-09-25,Boba brown sugar,Jajan & Kopi,32000,Cash
+2026-09-25,Nasi padang,Makan,35000,E-wallet
+2026-09-25,Ojol ke stasiun,Transportasi,17000,E-wallet
+2026-09-26,Sabun & deterjen,Belanja,47500,QRIS
+2026-09-27,Es kopi susu,Jajan & Kopi,10000,QRIS
+2026-09-27,Pecel lele,Makan,17000,QRIS
+2026-09-27,Tiket konser lokal,Hiburan,150000,Transfer
+2026-09-28,Donasi galang dana,Lainnya,50000,E-wallet
+2026-09-29,Es kopi susu,Jajan & Kopi,38000,QRIS
+2026-09-29,Ojol pulang kantor,Transportasi,35000,E-wallet
+2026-09-29,Sate ayam,Makan,15000,E-wallet
+2026-09-30,Es kopi susu,Jajan & Kopi,22000,QRIS
+2026-09-30,Nasi kucing angkringan,Makan,28000,QRIS
